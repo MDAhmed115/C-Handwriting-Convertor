@@ -141,20 +141,15 @@ function measureSpace(fontCss, size){
 function paperBg(type, lineCol, margin, lineSp, ruleTop){
   const BG={'ruled-cream':'#fdf8ee','ruled-white':'#fafafa','ruled-blue':'#f0f4ff','ruled-yellow':'#fffde0',grid:'#fefefe',plain:'#ffffff'};
   const bg=BG[type]||'#fdf8ee';
-  let imgs=[];
-  if(type==='grid'){
-    imgs.push(`repeating-linear-gradient(to right,transparent 0,transparent 31px,${lineCol} 31px,${lineCol} 32px)`);
-    imgs.push(`repeating-linear-gradient(to bottom,transparent 0,transparent 31px,${lineCol} 31px,${lineCol} 32px)`);
-  }
-  // Ruled lines live in their own layer (see buildPage) so they can be shifted freely.
-  // ruleTop = y position (px) of the first ruled line's top edge that we want to match.
+  // NOTE: lines are drawn as real 1px elements (see addLines in buildPage), NOT as CSS
+  // gradients, because html2canvas (used for the PDF export) can't render repeating gradients.
   let rules=null;
   if(type!=='plain' && type!=='grid'){
     const S=lineSp;
-    const y0=((((ruleTop-S+1)%S)+S)%S)-S;          // top of the layer, always <= 0
-    rules={top:y0,img:`repeating-linear-gradient(to bottom,transparent 0,transparent ${S-1}px,${lineCol} ${S-1}px,${lineCol} ${S}px)`};
+    const first=((((ruleTop)%S)+S)%S);            // y of the first ruled line (>= 0)
+    rules={first,step:S};
   }
-  return{bg,bi:imgs.join(',')||'none',rules,margin:!!(margin && type!=='plain' && type!=='grid')};
+  return{bg,bi:'none',grid:type==='grid',rules,margin:!!(margin && type!=='plain' && type!=='grid')};
 }
 
 // ── SCAN + FLASH + FOLD canvas ──
@@ -331,11 +326,21 @@ function buildPage(blocks, cfg, pageIdx, lpp){
   const ruleTop  = PAGE_TOP + baseline + 2 + cfg.lineOff;
   const pb=paperBg(cfg.paper, cfg.lineCol, cfg.margin, lineH, ruleTop);
   pg.style.backgroundColor=pb.bg; pg.style.backgroundImage=pb.bi;
-  if(pb.rules){
-    const rl=document.createElement('div');
-    rl.style.cssText=`position:absolute;left:0;right:0;bottom:0;top:${pb.rules.top}px;background-image:${pb.rules.img};pointer-events:none;z-index:0;`;
-    pg.appendChild(rl);
+  const PAGE_H=1123;
+  function addLines(){
+    const box=document.createElement('div');
+    box.style.cssText='position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:0;overflow:hidden;';
+    const mk=(css)=>{const d=document.createElement('div');d.style.cssText='position:absolute;background:'+cfg.lineCol+';'+css;box.appendChild(d);};
+    if(pb.rules){
+      for(let y=pb.rules.first; y<PAGE_H; y+=pb.rules.step) mk(`left:0;right:0;top:${y}px;height:1px;`);
+    }
+    if(pb.grid){
+      for(let y=31; y<PAGE_H; y+=32) mk(`left:0;right:0;top:${y}px;height:1px;`);
+      for(let x=31; x<794;    x+=32) mk(`top:0;bottom:0;left:${x}px;width:1px;`);
+    }
+    pg.appendChild(box);
   }
+  addLines();
   if(pb.margin){
     const mg=document.createElement('div');
     mg.style.cssText=`position:absolute;left:${82+cfg.marginX}px;width:2px;top:0;bottom:0;background:rgba(210,70,70,.5);pointer-events:none;z-index:1;`;

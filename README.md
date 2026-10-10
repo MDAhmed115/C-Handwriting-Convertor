@@ -1,4 +1,4 @@
-# C++ Handwriting Converter
+# ✏️ C++ Handwriting Converter
 
 Turn typed C++ code (or any text) into realistic handwritten pages: ruled paper, ink colours, baseline wobble, fold creases, phone-scan / flash effects, multi-question mode and one-click PDF export.
 
