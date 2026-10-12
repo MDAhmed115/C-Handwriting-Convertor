@@ -4,6 +4,8 @@ Turn typed C++ code (or any text) into realistic handwritten pages: ruled paper,
 
 Runs 100% in the browser. No build step, no dependencies to install.
 
+Run from here directly: https://mdahmed115.github.io/C-Handwriting-Convertor/
+
 ## Run it
 
 **Option 1: GitHub Pages**
